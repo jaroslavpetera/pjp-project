@@ -171,6 +171,22 @@ class VirtualMachine:
                 result = string[index] 
                 self.stack.append(result) # 3. Hodí výsledek ("H") zpět na zásobník
 
+            elif cmd == "createarray":
+                size = int(parts[1])
+                var_name = parts[2]
+                self.memory[var_name] = [0] * size # alokace listu plneho 0
+
+            elif cmd == "arraysave":
+                var_name = parts[1]
+                idx = self.stack.pop()
+                val = self.stack.pop()
+                self.memory[var_name][idx] = val
+
+            elif cmd == "arrayload":
+                var_name = parts[1]
+                idx = self.stack.pop()
+                self.stack.append(self.memory[var_name][idx])
+
 
             else:
                 print(f"Neznama instrukce: {cmd}")

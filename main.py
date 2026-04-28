@@ -26,12 +26,40 @@ def main():
 #     """
     input_text = """
 int i;
-string status;
+int soucet;
+int cislo;
+string vysledek;
+FILE f;
 
-for (i = 1; i < 6; i = i + 1) {
-    status = (i % 2 == 0) ? "sude" : "liche";
-    write i, status;
+// 1. Deklarace pole (podle tvého nového pravidla)
+int mojePole[6];
+
+// 2. Naplnění pole pomocí for cyklu
+for (i = 0; i < 5; i = i + 1) {
+    mojePole[i] = i * 10;
 }
+
+// 3. Otevření souboru
+fopen f "vysledky.txt";
+fappend f, "Vypocet hodnot z pole:";
+
+soucet = 0;
+
+// 4. Analýza pole, ternární operátor a zápis
+for (i = 0; i < 5; i = i + 1) {
+    cislo = mojePole[i];
+    soucet = soucet + cislo;
+    
+    // Ternární operátor pro určení typu
+    vysledek = (cislo % 20 == 0) ? "nasobek 20" : "ostatni";
+    
+    // Výpis do konzole i do souboru
+    write "Index:", i, "Hodnota:", cislo, "Typ:", vysledek;
+    fappend f, "Hodnota:", cislo, "Typ:", vysledek;
+}
+
+fappend f, "Celkovy soucet:", soucet;
+write "Hotovo, soucet je:", soucet;
     """
 
     input_stream = InputStream(input_text)

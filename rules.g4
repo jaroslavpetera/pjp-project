@@ -21,6 +21,8 @@ stat: type_spec ID (',' ID)* ';'                # declaration
     | ID '--' ';'                               # decrement
     | 'break' ';'                               # breakStat
     | 'continue' ';'                            # continueStat
+    | type_spec ID '[' INT ']' ';'              # arrayDeclaration
+    | ID '[' expr ']' '=' expr ';'              # arrayAssign
     | ';'                                       # emptyStat
     ;
 

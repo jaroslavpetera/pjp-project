@@ -182,16 +182,39 @@ class CompilerVisitor(rulesVisitor):
     def visitStringIndex(self, ctx:rulesParser.StringIndexContext):
         instructions = []
         var_name = ctx.ID().getText()
+        var_type = self.memory[var_name]
 
         instructions.append(f"load {var_name}")
 
         index, _ = self.visit(ctx.expr())
         instructions.extend(index)
 
-        instructions.append("charAt")
-
-        return instructions, 'char'
+        if var_type == 'string':
+            instructions.append("charAt")
+            return instructions, 'char'
+        else: # int
+            return index + [f"arrayload {var_name}"], 'int'
+        
+    def visitArrayDeclaration(self, ctx:rulesParser.ArrayDeclarationContext):
+        var_name = ctx.ID().getText()
+        size = ctx.INT().getText()
+        return [f"createarray {size} {var_name}"] # vytvori array o dane velikosti
     
+    def visitArrayAssign(self, ctx):
+        var_name = ctx.ID().getText()
+        # array_kind = self.memory[var_name] # 'float_array
+
+        val_inst, _ = self.visit(ctx.expr(1)) # hodnota (třeba 10)
+        idx_inst, _ = self.visit(ctx.expr(0)) # index (třeba 1)
+
+        # instruction = val_inst
+        # if "float" in array_kind and val_type == 'int':
+            # instructions.append("itof")
+
+        # Pořadí na stacku: [hodnota, index] -> pak zavoláš arraysave
+        return val_inst + idx_inst + [f"arraysave {var_name}"]
+        # return instructions + idx_inst + [f"arraysave {var_name}"]
+
     def visitForStat(self, ctx:rulesParser.ForStatContext):
         label_start = self.get_new_label()
         label_end = self.get_new_label()
@@ -404,6 +427,32 @@ class CompilerVisitor(rulesVisitor):
         left_inst, _ = self.visit(ctx.expr(0))
         right_inst, _ = self.visit(ctx.expr(1))
         return left_inst + right_inst + ["and"], 'bool'
+    
+    # CompilerVisitor.py
+
+# def visitLogicalAnd(self, ctx:rulesParser.LogicalAndContext):
+#     label_false = self.get_new_label()
+#     label_end = self.get_new_label()
+#     instructions = []
+
+#     # 1. Vyhodnotíme levou stranu
+#     left_inst, _ = self.visit(ctx.expr(0))
+#     instructions.extend(left_inst)
+    
+#     # 2. Short-circuit: Pokud je na zásobníku 'false', skoč na label_false
+#     instructions.append(f"fjmp {label_false}")
+
+#     # 3. Pokud jsme neskočili (vlevo bylo 'true'), vyhodnotíme pravou stranu
+#     right_inst, _ = self.visit(ctx.expr(1))
+#     instructions.extend(right_inst)
+#     instructions.append(f"jmp {label_end}")
+
+#     # 4. Sem skáčeme jen když levá strana byla 'false'
+#     instructions.append(f"label {label_false}")
+#     instructions.append("push B false") # Vynutíme výsledek false
+
+#     instructions.append(f"label {label_end}")
+#     return instructions, 'bool'
 
     def visitLogicalOr(self, ctx:rulesParser.LogicalOrContext):
         left_inst, _ = self.visit(ctx.expr(0))
@@ -448,3 +497,32 @@ class CompilerVisitor(rulesVisitor):
     def visitHexa(self, ctx:rulesParser.HexaContext):
         val = int(ctx.HEXA().getText(), 16)
         return [f"push I {val}"], 'int'
+    
+
+    # def visitOpAssignAdd(self, ctx:rulesParser.OpAssignAddContext):
+    #     var_name = ctx.ID().getText()
+    #     var_type = self.memory[var_name]
+    #     t_char = self.type_to_char(var_type)
+        
+    #     # 1. Nejdřív načteme aktuální hodnotu 'a' na zásobník
+    #     instructions = [f"load {var_name}"]
+        
+    #     # 2. Vyhodnotíme výraz na pravé straně (třeba 5)
+    #     expr_inst, expr_type = self.visit(ctx.expr())
+    #     instructions.extend(expr_inst)
+        
+    #     # 3. Pokud je potřeba, vložíme itof (např. float_a += int_5)
+    #     if var_type == 'float' and expr_type == 'int':
+    #         instructions.append("itof")
+            
+    #     # 4. Sečteme to
+    #     instructions.append(f"add {t_char}")
+        
+    #     # 5. Uložíme zpět do 'a'
+    #     instructions.append(f"save {var_name}")
+        
+    #     # 6. Pokud chceš, aby to vracelo hodnotu (jako v C++), přidej load, jinak pop
+    #     instructions.append(f"load {var_name}") # aby na stacku něco zůstalo
+    #     instructions.append("pop")             # a pak to uklidíme, protože je to stat
+        
+    #     return instructions

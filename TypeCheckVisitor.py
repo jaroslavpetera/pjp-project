@@ -31,6 +31,7 @@ class TypeCheckVisitor(rulesVisitor):
                 self.errors.append(f"Promenna '{var_name}' uz byla deklarovana.")
             else:
                 self.memory[var_name] = var_type
+                # self.memory[var_name] = (var_type, is_const)
 
     def visitAssign(self, ctx:rulesParser.AssignContext):
         var_name = ctx.ID().getText()
@@ -41,6 +42,12 @@ class TypeCheckVisitor(rulesVisitor):
             return 'error_type'
             
         expected_type = self.memory[var_name]
+        # expected_type, is_const = self.memory[var_name]
+        # if is_const:
+            # self.errors.append(f"chyba, {var_name} je constanta")
+            # return 'error_type'
+        # POKUD BYCH CHTEL KDEKOLIV DOSTAVAT self.memory[var_name], MUSEL BYCH PSAT self.memory[var_name][0] kvuli tomu tuple
+        # a do .g4 k deklaraci 'constant'? samozrejme
         
         # Zjistíme, jaký typ nám vrátil výraz na pravé straně (např. 'float')
         actual_type = self.visit(ctx.expr())
@@ -128,20 +135,38 @@ class TypeCheckVisitor(rulesVisitor):
         for expr in ctx.expr():
             self.visit(expr)
 
-    def visitStringIndex(self, ctx:rulesParser.StringIndexContext):
+    # def visitStringIndex(self, ctx:rulesParser.StringIndexContext):
+    #     var_name = ctx.ID().getText()
+    #     if var_name not in self.memory:
+    #         self.errors.append(f"pouziti nedeklarovane promenne {var_name}")
+    #         return 'error_type'
+        
+    #     if self.memory[var_name] != 'string':
+    #         return 'error_type'
+        
+    #     index_type = self.visit(ctx.expr()) # kontrola vyrazu uvnitr jestli je int
+    #     if index_type != 'int' and index_type != 'error_type':
+    #         return 'error_type'
+
+    #     return 'char'
+    def visitStringIndex(self, ctx:rulesParser.StringIndexContext): # pro INT
         var_name = ctx.ID().getText()
         if var_name not in self.memory:
             self.errors.append(f"pouziti nedeklarovane promenne {var_name}")
             return 'error_type'
         
-        if self.memory[var_name] != 'string':
-            return 'error_type'
+        var_type = self.memory[var_name]
         
-        index_type = self.visit(ctx.expr()) # kontrola vyrazu uvnitr jestli je int
-        if index_type != 'int' and index_type != 'error_type':
-            return 'error_type'
+        # if self.memory[var_name] != 'string':
+            # return 'error_type'
 
-        return 'char'
+        index_type = self.visit(ctx.expr()) # kontrola vyrazu uvnitr jestli je int
+        if index_type != 'int':
+            return 'error_type'
+        if var_type == 'string':
+            return 'char'
+        else:
+            return 'int'
     
     def visitForStat(self, ctx:rulesParser.ForStatContext):
         self.visit(ctx.init)
@@ -211,6 +236,31 @@ class TypeCheckVisitor(rulesVisitor):
 
     def visitContinueStat(self, ctx:rulesParser.ContinueStatContext):
         return 'void'
+    
+    def visitArrayDeclaration(self, ctx:rulesParser.ArrayDeclarationContext):
+        var_type = ctx.type_spec().getText() # int, float...
+        var_name = ctx.ID().getText()
+        self.memory[var_name] = 'array' # int arr kdyztak
+        # self.memory[var_name] = f"{var_type}_array"
+
+    def visitArrayAssign(self, ctx:rulesParser.ArrayAssignContext):
+        var_name = ctx.ID().getText()
+        if self.memory[var_name] != 'array':
+            self.errors.append(f"{var_name} neni pole")
+
+        # array_kind = self.memory[var_name] # 'float_array'
+        # expected_element_type = array_kind.split('_')[0] # 'float'
+
+        self.visit(ctx.expr(0))
+        
+        # actual_value_type = self.visit(ctx.expr(1))
+        self.visit(ctx.expr(1))
+
+        # if expected_element_type == 'float' and actual_value_type == 'int':
+            # pass
+        # elif expected_element_type != actual_value_type:
+            # self.errors.append("chyba")
+        # return 'void'
 
     # --- LITERÁLY (Základní stavební kameny) ---
     # Tyhle funkce teď místo hodnot (5, 3.14) vrací jen svůj TYP
