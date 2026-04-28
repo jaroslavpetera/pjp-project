@@ -11,23 +11,11 @@ stat: type_spec ID (',' ID)* ';'                # declaration
     | '{' stat* '}'                             # blockStat
     | 'if' '(' expr ')' stat ('else' stat)?     # ifStat
     | 'while' '(' expr ')' stat                 # whileStat
-    | 'fopen' ID STRING ';'                     # fopenStat
-    | 'fopen2' ID ',' STRING ';'                # fopenStat2
-    | ID '<<' expr ('<<' expr)* ';'             # writeFileStat
-    | 'fappend' ID ',' expr (',' expr)* ';'     # fappendStat
-    | 'for' '(' init=expr ';' cond=expr ';' step=expr ')' body=stat     # forStat
-    | 'do' body=stat 'while' '(' cond=expr ')' ';'   # doWhileStat
-    | ID '++' ';'                               # increment
-    | ID '--' ';'                               # decrement
-    | 'break' ';'                               # breakStat
-    | 'continue' ';'                            # continueStat
-    | type_spec ID '[' INT ']' ';'              # arrayDeclaration
-    | ID '[' expr ']' '=' expr ';'              # arrayAssign
     | ';'                                       # emptyStat
     ;
 
 
-type_spec: 'int' | 'float' | 'bool' | 'string' | 'FILE' | 'char' ;
+type_spec: 'int' | 'float' | 'bool' | 'string' ;
 
 expr: '-' expr                      # unaryMinus
     | '!' expr                      # logicalNot

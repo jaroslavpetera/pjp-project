@@ -47,7 +47,7 @@ class TypeCheckVisitor(rulesVisitor):
             # self.errors.append(f"chyba, {var_name} je constanta")
             # return 'error_type'
         # POKUD BYCH CHTEL KDEKOLIV DOSTAVAT self.memory[var_name], MUSEL BYCH PSAT self.memory[var_name][0] kvuli tomu tuple
-        # a do .g4 k deklaraci 'constant'? samozrejme
+        # a do .g4 k deklaraci 'constant'?
         
         # Zjistíme, jaký typ nám vrátil výraz na pravé straně (např. 'float')
         actual_type = self.visit(ctx.expr())
@@ -99,123 +99,6 @@ class TypeCheckVisitor(rulesVisitor):
     def visitEmptyStat(self, ctx:rulesParser.EmptyStatContext):
         pass
 
-    def visitFopenStat(self, ctx:rulesParser.FopenStatContext):
-        f_name = ctx.ID().getText()
-
-        if f_name not in self.memory:
-            self.errors.append(f"soubor neexistuje {f_name}")
-        if self.memory[f_name] != 'FILE':
-            self.errors.append(f"{f_name} neni typu FILE")
-
-    def visitFopenStat2(self, ctx:rulesParser.FopenStat2Context):
-        f_name = ctx.ID().getText()
-
-        if f_name not in self.memory:
-            self.errors.append(f"soubor neexistuje {f_name}")
-        if self.memory[f_name] != 'FILE':
-            self.errors.append(f"{f_name} neni typu FILE")
-
-    def visitWriteFileStat(self, ctx:rulesParser.WriteFileStatContext):
-        f_name = ctx.ID().getText()
-        if f_name not in self.memory:
-            self.errors.append(f"soubor neexistuje {f_name}")
-        if self.memory[f_name] != 'FILE':
-            self.errors.append(f"{f_name} neni typu FILE")
-        
-        for expr in ctx.expr():
-            self.visit(expr)
-
-    def visitFappendStat(self, ctx:rulesParser.FappendStatContext):
-        f_name = ctx.ID().getText()
-        if f_name not in self.memory:
-            self.errors.append(f"soubor neexistuje {f_name}")
-        if self.memory[f_name] != 'FILE':
-            self.errors.append(f"{f_name} neni typu FILE")
-        
-        for expr in ctx.expr():
-            self.visit(expr)
-
-    # def visitStringIndex(self, ctx:rulesParser.StringIndexContext):
-    #     var_name = ctx.ID().getText()
-    #     if var_name not in self.memory:
-    #         self.errors.append(f"pouziti nedeklarovane promenne {var_name}")
-    #         return 'error_type'
-        
-    #     if self.memory[var_name] != 'string':
-    #         return 'error_type'
-        
-    #     index_type = self.visit(ctx.expr()) # kontrola vyrazu uvnitr jestli je int
-    #     if index_type != 'int' and index_type != 'error_type':
-    #         return 'error_type'
-
-    #     return 'char'
-    def visitStringIndex(self, ctx:rulesParser.StringIndexContext): # pro INT
-        var_name = ctx.ID().getText()
-        if var_name not in self.memory:
-            self.errors.append(f"pouziti nedeklarovane promenne {var_name}")
-            return 'error_type'
-        
-        var_type = self.memory[var_name]
-        
-        # if self.memory[var_name] != 'string':
-            # return 'error_type'
-
-        index_type = self.visit(ctx.expr()) # kontrola vyrazu uvnitr jestli je int
-        if index_type != 'int':
-            return 'error_type'
-        if var_type == 'string':
-            return 'char'
-        else:
-            return 'int'
-    
-    def visitForStat(self, ctx:rulesParser.ForStatContext):
-        self.visit(ctx.init)
-
-        cond_type = self.visit(ctx.cond)
-        if cond_type != 'bool' and cond_type != 'error_type':
-            self.errors.append(f"podminka ve FOR musi byt BOOL, ne {cond_type}")
-
-        self.visit(ctx.step)
-        self.visit(ctx.body)
-
-    def visitDoWhileStat(self, ctx:rulesParser.DoWhileStatContext):
-        self.visit(ctx.body)
-        cond_type = self.visit(ctx.cond)
-        if cond_type != 'bool' and cond_type != 'error_type':
-            self.errors.append(f"Podminka v 'do-while' musi byt 'bool', ne '{cond_type}'.")
-
-    def visitIncrement(self, ctx:rulesParser.IncrementContext):
-        var_name = ctx.ID().getText()
-        
-        # 1. Existuje ta proměnná vůbec?
-        if var_name not in self.memory:
-            self.errors.append(f"Chyba: Pokus o inkrementaci nedeklarovane promenne '{var_name}'.")
-            return 'error_type'
-            
-        var_type = self.memory[var_name]
-        
-        # 2. Je to cislo? (int nebo float)
-        if var_type not in ['int', 'float']:
-            self.errors.append(f"Typova chyba: Operaci '++' nelze pouzit na typ {var_type}. Ocekavan 'int' nebo 'float'.")
-            return 'error_type'
-            
-        return var_type
-
-    def visitDecrement(self, ctx:rulesParser.DecrementContext):
-        var_name = ctx.ID().getText()
-        
-        if var_name not in self.memory:
-            self.errors.append(f"Chyba: Pokus o dekrementaci nedeklarovane promenne '{var_name}'.")
-            return 'error_type'
-            
-        var_type = self.memory[var_name]
-        
-        if var_type not in ['int', 'float']:
-            self.errors.append(f"Typova chyba: Operaci '--' nelze pouzit na typ {var_type}. Ocekavan 'int' nebo 'float'.")
-            return 'error_type'
-            
-        return var_type
-    
     def visitTernaryOp(self, ctx:rulesParser.TernaryOpContext):
         cond_type = self.visit(ctx.expr(0))
         if cond_type != 'bool':
@@ -228,39 +111,6 @@ class TypeCheckVisitor(rulesVisitor):
             self.errors.append("Vetve ternarniho operatoru musi mit stejny typ.")
             
         return t_type
-    
-    def visitBreakStat(self, ctx:rulesParser.BreakStatContext):
-        # Můžeš si v TypeCheckeru taky vést stack nebo jen counter
-        # pokud je counter == 0, vyhodíš chybu "Break mimo cyklus"
-        return 'void' 
-
-    def visitContinueStat(self, ctx:rulesParser.ContinueStatContext):
-        return 'void'
-    
-    def visitArrayDeclaration(self, ctx:rulesParser.ArrayDeclarationContext):
-        var_type = ctx.type_spec().getText() # int, float...
-        var_name = ctx.ID().getText()
-        self.memory[var_name] = 'array' # int arr kdyztak
-        # self.memory[var_name] = f"{var_type}_array"
-
-    def visitArrayAssign(self, ctx:rulesParser.ArrayAssignContext):
-        var_name = ctx.ID().getText()
-        if self.memory[var_name] != 'array':
-            self.errors.append(f"{var_name} neni pole")
-
-        # array_kind = self.memory[var_name] # 'float_array'
-        # expected_element_type = array_kind.split('_')[0] # 'float'
-
-        self.visit(ctx.expr(0))
-        
-        # actual_value_type = self.visit(ctx.expr(1))
-        self.visit(ctx.expr(1))
-
-        # if expected_element_type == 'float' and actual_value_type == 'int':
-            # pass
-        # elif expected_element_type != actual_value_type:
-            # self.errors.append("chyba")
-        # return 'void'
 
     # --- LITERÁLY (Základní stavební kameny) ---
     # Tyhle funkce teď místo hodnot (5, 3.14) vrací jen svůj TYP

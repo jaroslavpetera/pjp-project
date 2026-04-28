@@ -125,69 +125,6 @@ class VirtualMachine:
                 elif val_type == 'B': self.stack.append(user_input.lower() == 'true')
                 elif val_type == 'S': self.stack.append(user_input)
 
-            elif cmd == "fopen":
-                var_name = parts[1] # f
-                filename = " ".join(parts[2:]).strip('"')
-
-                self.memory[var_name] = open(filename, "w")
-
-            elif cmd == "fopen2":
-                var_name = parts[1] # f
-                filename = " ".join(parts[2:]).strip('"')
-
-                self.memory[var_name] = open(filename, "a")
-
-            elif cmd == "f_write":
-                var_name = parts[1] # f
-                value_to_write = self.stack.pop()
-
-                if var_name in self.memory:
-                    file = self.memory[var_name]
-
-                    file.write(str(value_to_write) + "\n")
-                    file.flush()
-                else:
-                    print(f"soubor {file} neni otevreny!")
-
-            elif cmd == 'fappend':
-                var_name = parts[1] #f
-                count = int(parts[2])
-
-                values = []
-                for _ in range(count):
-                    values.insert(0, self.stack.pop())
-                
-                if var_name in self.memory:
-                    file = self.memory[var_name]
-                    line = " ".join(map(str, values))
-                    file.write(line + "\n")
-                    file.flush()
-
-            elif cmd == "charAt":
-                index = self.stack.pop()  # 1. Popne index (např. 1)
-                string = self.stack.pop() # 2. Popne string (např. "AHOJ")
-                
-                # V Pythonu je indexování stringu hračka:
-                result = string[index] 
-                self.stack.append(result) # 3. Hodí výsledek ("H") zpět na zásobník
-
-            elif cmd == "createarray":
-                size = int(parts[1])
-                var_name = parts[2]
-                self.memory[var_name] = [0] * size # alokace listu plneho 0
-
-            elif cmd == "arraysave":
-                var_name = parts[1]
-                idx = self.stack.pop()
-                val = self.stack.pop()
-                self.memory[var_name][idx] = val
-
-            elif cmd == "arrayload":
-                var_name = parts[1]
-                idx = self.stack.pop()
-                self.stack.append(self.memory[var_name][idx])
-
-
             else:
                 print(f"Neznama instrukce: {cmd}")
 

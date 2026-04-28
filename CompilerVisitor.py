@@ -138,174 +138,6 @@ class CompilerVisitor(rulesVisitor):
     def visitEmptyStat(self, ctx:rulesParser.EmptyStatContext):
         return []
     
-    def visitFopenStat(self, ctx:rulesParser.FopenStatContext):
-        instructions = []
-        f_name = ctx.ID().getText()
-        text = ctx.STRING().getText()
-
-        instructions.append(f"fopen {f_name} {text}")
-        return instructions
-    
-    def visitFopenStat2(self, ctx:rulesParser.FopenStat2Context):
-        instructions = []
-        f_name = ctx.ID().getText()
-        text = ctx.STRING().getText()
-
-        instructions.append(f"fopen2 {f_name} {text}")
-        return instructions
-    
-    def visitWriteFileStat(self, ctx:rulesParser.WriteFileStatContext):
-        instructions = []
-        f_name = ctx.ID().getText()
-
-        for expr_node in ctx.expr():
-            inst, _ = self.visit(expr_node)
-            instructions.extend(inst)
-
-            instructions.append(f"f_write {f_name}")
-
-        return instructions
-    
-    def visitFappendStat(self, ctx:rulesParser.FappendStatContext):
-        instructions = []
-        f_name = ctx.ID().getText()
-        for expr_node in ctx.expr():
-            inst, _ = self.visit(expr_node)
-            instructions.extend(inst)
-
-        count = len(ctx.expr())
-
-
-        instructions.append(f"fappend {f_name} {count}")
-        return instructions
-    
-    def visitStringIndex(self, ctx:rulesParser.StringIndexContext):
-        instructions = []
-        var_name = ctx.ID().getText()
-        var_type = self.memory[var_name]
-
-        instructions.append(f"load {var_name}")
-
-        index, _ = self.visit(ctx.expr())
-        instructions.extend(index)
-
-        if var_type == 'string':
-            instructions.append("charAt")
-            return instructions, 'char'
-        else: # int
-            return index + [f"arrayload {var_name}"], 'int'
-        
-    def visitArrayDeclaration(self, ctx:rulesParser.ArrayDeclarationContext):
-        var_name = ctx.ID().getText()
-        size = ctx.INT().getText()
-        return [f"createarray {size} {var_name}"] # vytvori array o dane velikosti
-    
-    def visitArrayAssign(self, ctx):
-        var_name = ctx.ID().getText()
-        # array_kind = self.memory[var_name] # 'float_array
-
-        val_inst, _ = self.visit(ctx.expr(1)) # hodnota (třeba 10)
-        idx_inst, _ = self.visit(ctx.expr(0)) # index (třeba 1)
-
-        # instruction = val_inst
-        # if "float" in array_kind and val_type == 'int':
-            # instructions.append("itof")
-
-        # Pořadí na stacku: [hodnota, index] -> pak zavoláš arraysave
-        return val_inst + idx_inst + [f"arraysave {var_name}"]
-        # return instructions + idx_inst + [f"arraysave {var_name}"]
-
-    def visitForStat(self, ctx:rulesParser.ForStatContext):
-        label_start = self.get_new_label()
-        label_end = self.get_new_label()
-        instructions = []
-
-        # inicializace
-        init_inst, _ = self.visit(ctx.init)
-        instructions.extend(init_inst)
-        instructions.append("pop")
-
-        # zacatek smycky
-        instructions.append(f"label {label_start}")
-
-        # podminka
-        cond_inst, _ = self.visit(ctx.cond)
-        instructions.extend(cond_inst)
-        instructions.append(f"fjmp {label_end}")
-
-        # telo cyklu
-        body_inst = self.visit(ctx.body)
-        if body_inst:
-            instructions.extend(body_inst)
-        
-        # inkrementace i++
-        step_inst, _ = self.visit(ctx.step)
-        instructions.extend(step_inst)
-        instructions.append("pop")
-
-        # skok zpet a label pro konec
-        instructions.append(f"jmp {label_start}")
-        instructions.append(f"label {label_end}")
-
-        return instructions
-    
-    def visitDoWhileStat(self, ctx:rulesParser.DoWhileStatContext):
-        label_start = self.get_new_label()
-        instructions = []
-
-        # 1. Značka začátku (sem se budeme vracet)
-        instructions.append(f"label {label_start}")
-
-        # 2. Tělo cyklu (provede se hned napoprvé)
-        body_inst = self.visit(ctx.body)
-        if body_inst:
-            instructions.extend(body_inst)
-
-        # 3. Podmínka (vyhodnotí se až po proběhnutí těla)
-        cond_inst, _ = self.visit(ctx.cond)
-        instructions.extend(cond_inst)
-
-        # 4. Pokud je podmínka TRUE, skáčeme zpět na začátek
-        # Máme instrukci 'fjmp' (skok při FALSE), ale my chceme skok při TRUE.
-        # Máš dvě možnosti:
-        # A) Použít 'not' a pak 'fjmp'
-        # B) Pokud tvoje VM umí 'tjmp' (True Jump), použij ten. 
-        # Pokud ne, uděláme to přes 'not':
-        
-        instructions.append("not")
-        instructions.append(f"fjmp {label_start}")
-
-        return instructions
-    
-    def visitIncrement(self, ctx:rulesParser.IncrementContext):
-        var_name = ctx.ID().getText()
-        var_type = self.memory[var_name]
-        t_char = self.type_to_char(var_type)
-        
-        # Logika: load x -> push 1 -> add -> save x -> pop
-        instructions = [
-            f"load {var_name}",
-            f"push I 1", # Pokud je to float, VM si s tím díky itof poradí nebo tady dej F 1.0
-            f"add {t_char}",
-            f"save {var_name}",
-            "pop"
-        ]
-        return instructions
-
-    def visitDecrement(self, ctx:rulesParser.DecrementContext):
-        var_name = ctx.ID().getText()
-        var_type = self.memory[var_name]
-        t_char = self.type_to_char(var_type)
-        
-        instructions = [
-            f"load {var_name}",
-            f"push I 1",
-            f"sub {t_char}",
-            f"save {var_name}",
-            "pop"
-        ]
-        return instructions
-    
     def visitTernaryOp(self, ctx:rulesParser.TernaryOpContext):
         label_false = self.get_new_label()
         label_end = self.get_new_label()
@@ -332,20 +164,6 @@ class CompilerVisitor(rulesVisitor):
         # Typ výsledku bude ten, který mají větve (ideálně stejný)
         return instructions, true_type
     
-    def visitBreakStat(self, ctx:rulesParser.BreakStatContext):
-        if not self.break_stack:
-            # Tohle by měl ideálně chytit TypeChecker, ale pro jistotu:
-            return [] 
-        # Skoč na label, který je na vrcholu zásobníku (konec nejbližšího cyklu)
-        return [f"jmp {self.break_stack[-1]}"]
-
-    def visitContinueStat(self, ctx:rulesParser.ContinueStatContext):
-        if not self.continue_stack:
-            return []
-        # Skoč na label pro začátek nejbližšího cyklu
-        return [f"jmp {self.continue_stack[-1]}"]
-
-
 
     # ==========================================
     # VÝRAZY (EXPRESSIONS) - vrací (list[string], string)
@@ -428,31 +246,7 @@ class CompilerVisitor(rulesVisitor):
         right_inst, _ = self.visit(ctx.expr(1))
         return left_inst + right_inst + ["and"], 'bool'
     
-    # CompilerVisitor.py
 
-# def visitLogicalAnd(self, ctx:rulesParser.LogicalAndContext):
-#     label_false = self.get_new_label()
-#     label_end = self.get_new_label()
-#     instructions = []
-
-#     # 1. Vyhodnotíme levou stranu
-#     left_inst, _ = self.visit(ctx.expr(0))
-#     instructions.extend(left_inst)
-    
-#     # 2. Short-circuit: Pokud je na zásobníku 'false', skoč na label_false
-#     instructions.append(f"fjmp {label_false}")
-
-#     # 3. Pokud jsme neskočili (vlevo bylo 'true'), vyhodnotíme pravou stranu
-#     right_inst, _ = self.visit(ctx.expr(1))
-#     instructions.extend(right_inst)
-#     instructions.append(f"jmp {label_end}")
-
-#     # 4. Sem skáčeme jen když levá strana byla 'false'
-#     instructions.append(f"label {label_false}")
-#     instructions.append("push B false") # Vynutíme výsledek false
-
-#     instructions.append(f"label {label_end}")
-#     return instructions, 'bool'
 
     def visitLogicalOr(self, ctx:rulesParser.LogicalOrContext):
         left_inst, _ = self.visit(ctx.expr(0))
@@ -498,31 +292,3 @@ class CompilerVisitor(rulesVisitor):
         val = int(ctx.HEXA().getText(), 16)
         return [f"push I {val}"], 'int'
     
-
-    # def visitOpAssignAdd(self, ctx:rulesParser.OpAssignAddContext):
-    #     var_name = ctx.ID().getText()
-    #     var_type = self.memory[var_name]
-    #     t_char = self.type_to_char(var_type)
-        
-    #     # 1. Nejdřív načteme aktuální hodnotu 'a' na zásobník
-    #     instructions = [f"load {var_name}"]
-        
-    #     # 2. Vyhodnotíme výraz na pravé straně (třeba 5)
-    #     expr_inst, expr_type = self.visit(ctx.expr())
-    #     instructions.extend(expr_inst)
-        
-    #     # 3. Pokud je potřeba, vložíme itof (např. float_a += int_5)
-    #     if var_type == 'float' and expr_type == 'int':
-    #         instructions.append("itof")
-            
-    #     # 4. Sečteme to
-    #     instructions.append(f"add {t_char}")
-        
-    #     # 5. Uložíme zpět do 'a'
-    #     instructions.append(f"save {var_name}")
-        
-    #     # 6. Pokud chceš, aby to vracelo hodnotu (jako v C++), přidej load, jinak pop
-    #     instructions.append(f"load {var_name}") # aby na stacku něco zůstalo
-    #     instructions.append("pop")             # a pak to uklidíme, protože je to stat
-        
-    #     return instructions
