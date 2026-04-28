@@ -1,0 +1,34 @@
+push I 1
+save i
+load i
+pop
+label 1
+load i
+push I 6
+lt I
+fjmp 2
+load i
+push I 2
+mod
+push I 0
+eq I
+fjmp 3
+push S "sude"
+jmp 4
+label 3
+push S "liche"
+label 4
+save status
+load status
+pop
+load i
+load status
+print 2
+load i
+push I 1
+add I
+save i
+load i
+pop
+jmp 1
+label 2
